@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Local renders, experiments, and archives
+outputs/
+previews/
+backups/
+work/
+local-tests/
+agent-evaluation-xhs-page-07/
+*.zip

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Card Studio</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <section class="intro-screen" id="introScreen" aria-label="欢迎使用 Social Card Studio">
+    <div class="intro-grid" id="introGrid" aria-hidden="true"></div>
+    <div class="intro-vignette" aria-hidden="true"></div>
+    <div class="intro-content">
+      <div class="intro-copy" aria-live="polite" aria-atomic="true">
+        <span id="introTypingText">Hello，这是一款小红书图文编辑器</span><span class="intro-cursor" aria-hidden="true"></span>
+      </div>
+      <button class="intro-flip-button" id="startCreatingButton" type="button" aria-label="Start creating">
+        <span class="intro-flip-face intro-flip-front">Start creating</span>
+        <span class="intro-flip-face intro-flip-back">Start creating</span>
+      </button>
+    </div>
+    <div class="intro-social-icons" aria-label="社区平台">
+      <img src="assets/github-fill.svg" alt="GitHub">
+      <img class="intro-xiaohongshu-icon" src="assets/xiaohongshu.png" alt="小红书">
+    </div>
+  </section>
+  <div class="intro-transition" id="introTransition" aria-hidden="true"></div>
+
+  <div class="app-shell app-shell-entering" id="appShell" aria-hidden="true">
+    <header class="app-bar">
+      <div class="brand-lockup">
+        <strong>Social Card Studio</strong>
+      </div>
+      <div class="app-actions management-bar" role="toolbar" aria-label="页面操作">
+        <div class="management-history">
+          <button class="management-action" id="undoButton" title="撤销" aria-label="撤销"><i data-lucide="undo-2"></i></button>
+          <button class="management-action" id="redoButton" title="重做" aria-label="重做"><i data-lucide="redo-2"></i></button>
+        </div>
+        <span class="management-divider" aria-hidden="true"></span>
+        <div class="management-files">
+          <button class="management-action management-file-action" id="importButton" title="导入" aria-label="导入"><i data-lucide="upload"></i><span class="management-label">导入</span></button>
+          <button class="management-action management-file-action" id="saveJsonButton" title="下载 JSON" aria-label="下载 JSON"><i data-lucide="file-json"></i><span class="management-label">JSON</span></button>
+        </div>
+        <span class="management-divider" aria-hidden="true"></span>
+        <button class="management-export" id="exportButton"><i data-lucide="download"></i><span>导出图片</span></button>
+        <input id="jsonInput" type="file" accept="application/json,.json" hidden>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="page-rail" aria-label="页面列表">
+        <div class="rail-head"><strong>页面</strong><span id="pageTotal">0</span></div>
+        <div class="page-list" id="pageList"></div>
+        <button class="add-page" id="addPageButton"><i data-lucide="plus"></i><span>新增页面</span></button>
+      </aside>
+
+      <section class="canvas-area" aria-label="卡片画布">
+        <div class="canvas-toolbar">
+          <span class="system-label">Swiss International</span>
+          <div class="canvas-status"><span id="recipeBadge">S01</span><span>1080 × 1440</span><span id="saveState">已保存</span><span id="overflowNotice" hidden>内容过多，请拆分页面</span></div>
+          <div class="zoom-group">
+            <button class="button ghost icon-only" id="zoomOut" title="缩小" aria-label="缩小"><i data-lucide="minus"></i></button>
+            <span id="zoomValue">50%</span>
+            <button class="button ghost icon-only" id="zoomIn" title="放大" aria-label="放大"><i data-lucide="plus"></i></button>
+          </div>
+        </div>
+        <div class="canvas-scroll">
+          <div class="poster-stage" id="posterStage">
+            <div class="poster" id="poster" aria-label="当前卡片预览"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="sidebar-resizer" id="inspectorResizer" title="按住拖拽调节侧边栏宽度，双击恢复默认" role="separator" aria-orientation="vertical"></div>
+
+      <aside class="inspector" aria-label="属性编辑">
+        <div class="inspector-tabs">
+          <button class="active" data-tab="content">内容</button>
+        </div>
+        <div class="inspector-scroll">
+          <section class="inspector-panel active" data-panel="content">
+            <div class="field-group">
+              <div class="field-heading"><label>版式组件</label><span class="recipe-count">12 个</span></div>
+              <div class="recipe-gallery compact" id="recipeGallery"></div>
+            </div>
+            <div class="field-group component-section">
+              <div class="field-heading"><label>页面组件</label><button class="text-action" id="addComponentButton"><i data-lucide="plus"></i>添加组件</button></div>
+              <div class="component-hint" id="componentHint">规范模板固定组件结构；修改结构会切换到自定义排版。</div>
+              <div class="component-list" id="componentList"></div>
+            </div>
+            <div class="component-editor" id="componentEditor"></div>
+            <div class="settings-divider"><span>页面设计</span></div>
+            <div class="field-group">
+              <label for="themeSelect">主题</label>
+              <select id="themeSelect"></select>
+              <div class="theme-swatches" id="themeSwatches"></div>
+            </div>
+            <div class="field-group">
+              <div class="field-heading"><label id="imageSectionLabel">页面图片</label><button class="text-action danger-text" id="removeImageButton">移除</button></div>
+              <button class="upload-zone" id="imageButton">
+                <span class="upload-preview" id="uploadPreview"><i data-lucide="image-plus"></i></span>
+                <span><strong id="imageLabel">选择图片</strong><small>PNG / JPG / WebP</small></span>
+              </button>
+              <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            </div>
+            <div class="field-group">
+              <label for="cropRange">图片焦点 <output id="cropValue">50%</output></label>
+              <input id="cropRange" type="range" min="0" max="100" value="50">
+            </div>
+            <div class="field-group">
+              <label>适配方式</label>
+              <div class="segmented full" id="fitSwitch" role="radiogroup" aria-label="图片适配方式" data-active-index="0">
+                <button type="button" role="radio" aria-checked="true" tabindex="0" data-fit="cover" class="active">裁切填充</button>
+                <button type="button" role="radio" aria-checked="false" tabindex="-1" data-fit="contain">完整显示</button>
+              </div>
+            </div>
+            <div class="field-group two-columns">
+              <label>左侧页脚<input id="footerLeftInput" type="text" maxlength="28"></label>
+              <label>起始页码<input id="pageStartInput" type="number" min="0" max="99"></label>
+            </div>
+            <button class="button danger wide" id="resetButton"><i data-lucide="rotate-ccw"></i><span>恢复示例</span></button>
+          </section>
+
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="exportDialog" aria-labelledby="exportDialogTitle" aria-describedby="exportDialogDescription">
+    <div class="dialog-card export-dialog-card">
+      <div class="dialog-head"><div><strong id="exportDialogTitle">导出图片</strong><span id="exportDialogDescription">选择导出范围与格式，保持 1080 × 1440 原始尺寸。</span></div><button class="export-close" type="button" data-close-export aria-label="关闭"><i data-lucide="x"></i></button></div>
+      <div class="export-field">
+        <span class="export-field-label" id="exportPageLabel">导出页面</span>
+        <div class="export-tabs" role="tablist" aria-labelledby="exportPageLabel" data-export-for="exportPageSelect">
+          <button type="button" role="tab" id="exportCurrentTab" aria-controls="exportPagePanel" aria-selected="true" tabindex="0" data-export-value="current">当前页</button>
+          <button type="button" role="tab" id="exportAllTab" aria-controls="exportPagePanel" aria-selected="false" tabindex="-1" data-export-value="all">全部页面</button>
+        </div>
+        <div class="export-tab-panel" id="exportPagePanel" role="tabpanel" aria-labelledby="exportCurrentTab">仅导出当前页面。</div>
+        <input id="exportPageSelect" type="hidden" value="current">
+      </div>
+      <div class="export-field">
+        <span class="export-field-label" id="exportFormatLabel">图片格式</span>
+        <div class="export-tabs" role="tablist" aria-labelledby="exportFormatLabel" data-export-for="exportFormat">
+          <button type="button" role="tab" id="exportPngTab" aria-controls="exportFormatPanel" aria-selected="true" tabindex="0" data-export-value="png">PNG</button>
+          <button type="button" role="tab" id="exportJpegTab" aria-controls="exportFormatPanel" aria-selected="false" tabindex="-1" data-export-value="jpeg">JPG</button>
+        </div>
+        <div class="export-tab-panel" id="exportFormatPanel" role="tabpanel" aria-labelledby="exportPngTab">文字与线条更清晰。</div>
+        <input id="exportFormat" type="hidden" value="png">
+      </div>
+      <label class="export-field export-name-field" for="exportFilename"><span class="export-field-label">文件名</span><input id="exportFilename" type="text" value="social-card" maxlength="80" autocomplete="off" spellcheck="false"><small>会自动附加页码和图片扩展名。</small></label>
+      <div class="dialog-actions"><button class="export-cancel" type="button" data-close-export>取消</button><button class="export-confirm" type="button" id="confirmExport"><i data-lucide="download"></i><span>开始导出</span></button></div>
+    </div>
+  </dialog>
+
+  <dialog id="templateDialog" class="template-dialog">
+    <div class="template-dialog-card">
+      <div class="dialog-head"><div><strong>选择新页面版式</strong><span>所有版式均使用 Swiss 网格与当前强调色</span></div><button class="button ghost icon-only" id="closeTemplateDialog" aria-label="关闭"><i data-lucide="x"></i></button></div>
+      <div class="recipe-gallery large" id="newPageRecipeGallery"></div>
+    </div>
+  </dialog>
+  <dialog id="componentDialog" class="template-dialog component-dialog">
+    <div class="template-dialog-card">
+      <div class="dialog-head"><div><strong>添加版式组件</strong><span>组件会自动吸附到 12 列网格</span></div><button class="button ghost icon-only" id="closeComponentDialog" aria-label="关闭"><i data-lucide="x"></i></button></div>
+      <div class="component-gallery" id="componentGallery"></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
